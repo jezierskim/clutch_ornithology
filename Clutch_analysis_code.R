@@ -43,7 +43,7 @@ clutch %>% group_by(is) %>% summarise(min = mean(clumin), max = mean(clumax), mi
 clutch <- clutch %>% mutate(bodmax = log(bodmax), # log maximum body mass 
                             area = log(area), # log area 
                             latitude = abs(latitude)) %>% # force latitude to absolute
-  column_to_rownames(var = 'jetz') %>% # move phylogeny names to rownames for downstream use with phylolm.
+  column_to_rownames(var = 'jetz') # move phylogeny names to rownames for downstream use with phylolm.
 
 ## Check VIF using basic lm() in R.
 vif(lm(clumin ~ latitude*is + bodmax, data = clutch), type = 'predictor')
@@ -66,29 +66,46 @@ cd <- comparative.data(clutch1, phy = trees[[1]], names.col = jetz) ## created p
 nlmePagelclumin <- gls(clumin ~ latitude*is + bodmax, ## run gls with Pagel; NB: THIS STEP TAKES A WHILE.
                        correlation = corPagel(1, phy = cd$phy),
                  data = cd$data, method = "ML")
+write_rds(nlmePagelclumin, '~/Desktop/nlmePagelclumin.rds')
 
+
+nlmePagelclumax <- gls(clumax ~ latitude*is + bodmax, ## run gls with Pagel; NB: THIS STEP TAKES A WHILE.
+                       correlation = corPagel(1, phy = cd$phy),
+                       data = cd$data, method = "ML")
+write_rds(nlmePagelclumax, '~/Desktop/nlmePagelclumax.rds')
+
+nlmePagelclumid <- gls(clumid ~ latitude*is + bodmax, ## run gls with Pagel; NB: THIS STEP TAKES A WHILE.
+                       correlation = corPagel(1, phy = cd$phy),
+                       data = cd$data, method = "ML")
+write_rds(nlmePagelclumid, '~/Desktop/nlmePagelclumid.rds')
 
 
 
 
 ### FIGURE 1 - MODELS
 clumin_estimates <- data.frame()
-
 for (i in 1:length(trees)) {
-  m <- phylolm(clumin ~ latitude*is + bodmax, phy = trees[[i]], model = 'lambda')
-  
+  m <- phylolm(clumin ~ latitude*is + bodmax, data = clutch, phy = trees[[i]], model = 'lambda')
+  d <- as.data.frame(summary(m)$coefficients) %>% rownames_to_column(var = 'predictor')
+  clumin_estimates <- rbind(clumin_estimates, d)
 }
+write_csv(clumin_estimates, '~/Desktop/clumin_estimates.csv')
 
+clumax_estimates <- data.frame()
+for (i in 1:length(trees)) {
+  m <- phylolm(clumax ~ latitude*is + bodmax, data = clutch, phy = trees[[i]], model = 'lambda')
+  d <- as.data.frame(summary(m)$coefficients) %>% rownames_to_column(var = 'predictor')
+  clumax_estimates <- rbind(clumax_estimates, d)
+}
+write_csv(clumax_estimates, '~/Desktop/clumax_estimates.csv')
 
-intercept            <-
-  phylolm::summary.phylolm(mod)$coefficients[[1, 1]]
-se.intercept         <-
-  phylolm::summary.phylolm(mod)$coefficients[[1, 2]]
-estimate                <-
-  phylolm::summary.phylolm(mod)$coefficients[[2, 1]]
-se.estimate             <-
-  phylolm::summary.phylolm(mod)$coefficients[[2, 2]]
-pval.intercept       <-
-  phylolm::summary.phylolm(mod)$coefficients[[1, 4]]
-pval.estimate           <-
-  phylolm::summary.phylolm(mod)$coefficients[[2, 4]]
+clumid_estimates <- data.frame()
+for (i in 1:length(trees)) {
+  m <- phylolm(clumid ~ latitude*is + bodmax, data = clutch, phy = trees[[i]], model = 'lambda')
+  d <- as.data.frame(summary(m)$coefficients) %>% rownames_to_column(var = 'predictor')
+  clumid_estimates <- rbind(clumid_estimates, d)
+}
+write_csv(clumid_estimates, '~/Desktop/clumid_estimates.csv')
+
+ggplot(data = clumid_estimates, aes(x = Estimate, y = predictor)) +
+  geom_boxplot() + geom_vline(xintercept = 0.0, col = 'red') + xlim(c(-0.25,0.25))
