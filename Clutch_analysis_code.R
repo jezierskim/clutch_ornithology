@@ -11,7 +11,7 @@ library(gghalves)
 
 ##### LOAD IN THE DATA REQUIRED: ====
 ## Load clutch dataset; create clutch-midpoint variable; remove outliers for all three values.
-clutch <- read_csv('~/Desktop/clutch_dataset_geo.csv') # load in the clutch dataset.
+clutch <- read_csv('~/Desktop/clutch/clutch_dataset_geo.csv') # load in the clutch dataset.
 clutch <- clutch %>% mutate(clumid = (clumin + clumax)/2) # calculate midpoint
 Qmin <- quantile(clutch$clumin, probs=c(.25, .75), na.rm = FALSE) # calculate 25% and 75% quantiles.
 Qmax <- quantile(clutch$clumax, probs=c(.25, .75), na.rm = FALSE)
@@ -23,14 +23,11 @@ clutch <- clutch %>%
   filter(clumin < (Qmin[2]+1.5*IQRmin)) %>% # remove upper outliers
   filter(clumax < (Qmax[2]+1.5*IQRmax)) %>%
   filter(clumid < (Qmid[2]+1.5*IQRmid)) 
-## END RESULT: datatframe of 4,522 species to be retained in the analysis.
+## END RESULT: dataframe of 4,522 species to be retained in the analysis.
 rm(IQRmax, IQRmid, IQRmin, Qmax, Qmid, Qmin)
 
 ## Load phylogenetic trees, prune them to match the dataset, sample 100 random trees to be used in the analysis.
-trees <- read.tree('~/Desktop/randomHackSix.tre') # load in the sample of 1,000 trees based on genetic data.
-trees <- lapply(trees, keep.tip, tip = clutch$jetz) # prune all the trees to include species from 'clutch'.
-trees <- sample(trees, 100) # sample 100 random trees without replacement. 
-
+trees <- read.tree('~/Desktop/clutch/100_trees_Hackett_genetic.tre') # load in the sample of 1,000 trees based on genetic data.
 
 ##### RESULTS -- GENERAL STATISTICS ====
 clutch %>% group_by(is) %>% summarise(min = mean(clumin), max = mean(clumax), mid = mean(clumid))
@@ -129,20 +126,14 @@ write_csv(clumid_estimates, '~/Desktop/clumid_estimates.csv')
 ### For minimum clutch size:
 summary(clumin_estimates %>% filter(predictor == 'isY'))
 summary(clumin_estimates %>% filter(predictor == 'bodmax'))
-summary(clumin_estimates %>% filter(predictor == 'lambda'))
-summary(clumin_estimates %>% filter(predictor == 'r2'))
 
 ### For maximum clutch size:
 summary(clumax_estimates %>% filter(predictor == 'isY'))
 summary(clumax_estimates %>% filter(predictor == 'bodmax'))
-summary(clumax_estimates %>% filter(predictor == 'lambda'))
-summary(clumax_estimates %>% filter(predictor == 'r2'))
 
 ### For mid-point clutch size:
 summary(clumid_estimates %>% filter(predictor == 'isY'))
 summary(clumid_estimates %>% filter(predictor == 'bodmax'))
-summary(clumid_estimates %>% filter(predictor == 'lambda'))
-summary(clumid_estimates %>% filter(predictor == 'r2'))
 
 ##### RESULTS -- FIGURE 1. ====
 ### Raincloud plots forming part A) of Figure 1.
@@ -229,3 +220,95 @@ ggplot(data = clutch %>% drop_na(), aes(y = clumid, x = latitude, col = is)) + g
   scale_x_continuous(breaks = c(0,30,60,90), limits = c(0,90)) +
   theme(legend.position = 'none')
 
+##### RESULTS - R^2 and lambda ====
+## As part of the analysis I have collected information regarding Pagel's lambda and 
+## R^2; here is the code to investigate those summaries.
+summary(clumin_estimates)
+summary(clumax_estimates)
+summary(clumid_estimates)
+
+
+
+##### RESULTS - AREA RELATIONSHIPS AMONG ISLAND ENDEMICS ====
+## Investigate clutch size in relation to breeding range area among island endemics
+## and prepare the dataset for Figure 3.
+
+clutch_island <- clutch %>% filter(is == 'Y')
+
+## Investigate which evolutionary model is the best approximation of clutch size evolution
+## in island-only dataset.
+## As a reminder: area is set to log10 of area in km^2 in section MODELLING PREPARATION.
+evo_fit <- function(x) {model.sel(A <- phylolm(formula = x, data = clutch_island, as.phylo(trees[[1]]), model = 'BM'),
+                                  B <- phylolm(formula = x, data = clutch_island, as.phylo(trees[[1]]), model = 'OUrandomRoot'),
+                                  C <- phylolm(formula = x, data = clutch_island, as.phylo(trees[[1]]), model = 'OUfixedRoot'),
+                                  D <- phylolm(formula = x, data = clutch_island, as.phylo(trees[[1]]), model = 'lambda'),
+                                  E <- phylolm(formula = x, data = clutch_island, as.phylo(trees[[1]]), model = 'kappa'),
+                                  G <- phylolm(formula = x, data = clutch_island, as.phylo(trees[[1]]), model = 'delta'))
+} # function that test 6 different evolutionary models (see METHODS)
+evo_fit(clumin ~ area) # for clumin lambda is the best.
+evo_fit(clumax ~ area) # for clumax lambda is the best.
+evo_fit(clumid ~ area) # for clumid lambda is the best.
+
+## Fit the linear models using the same trees as before.
+
+clumin_island_estimates <- data.frame()
+for (i in 1:length(trees)) {
+  m <- phylolm(clumin ~ area, data = clutch_island, phy = trees[[i]], model = 'lambda')
+  d <- as.data.frame(summary(m)$coefficients) %>% rownames_to_column(var = 'predictor') %>%
+    mutate(lambda = m$optpar) %>% # extract Pagel's lambda for each model
+    mutate(r2 = m$adj.r.squared) # extract R^squared for each model
+  clumin_island_estimates <- rbind(clumin_island_estimates, d)
+}
+write_csv(clumin_estimates, '~/Desktop/clutch/clumin_island_estimates.csv')
+
+clumax_island_estimates <- data.frame()
+for (i in 1:length(trees)) {
+  m <- phylolm(clumax ~ area, data = clutch_island, phy = trees[[i]], model = 'lambda')
+  d <- as.data.frame(summary(m)$coefficients) %>% rownames_to_column(var = 'predictor') %>%
+    mutate(lambda = m$optpar) %>% # extract Pagel's lambda for each model
+    mutate(r2 = m$adj.r.squared) # extract R^squared for each model
+  clumax_island_estimates <- rbind(clumax_island_estimates, d)
+}
+write_csv(clumax_estimates, '~/Desktop/clutch/clumax_island_estimates.csv')
+
+clumid_island_estimates <- data.frame()
+for (i in 1:length(trees)) {
+  m <- phylolm(clumid ~ area, data = clutch_island, phy = trees[[i]], model = 'lambda')
+  d <- as.data.frame(summary(m)$coefficients) %>% rownames_to_column(var = 'predictor') %>%
+    mutate(lambda = m$optpar) %>% # extract Pagel's lambda for each model
+    mutate(r2 = m$adj.r.squared) # extract R^squared for each model
+  clumid_island_estimates <- rbind(clumid_island_estimates, d)
+}
+write_csv(clumid_estimates, '~/Desktop/clutch/clumid_island_estimates.csv')
+
+ ## Obtain estimates for the impact of area on each clutch size measurement.
+summary(clumin_island_estimates %>% filter(predictor == 'area'))
+summary(clumax_island_estimates %>% filter(predictor == 'area'))
+summary(clumid_island_estimates %>% filter(predictor == 'area'))
+
+##### FIGURE 3 - RELATIONSHIP OF CLUTCH SIZE AND AREA ====
+## Plot the composite figures of Figure 3.
+
+m <- phylolm(clumin ~ area, data = clutch_island, phy = trees[[1]], model = 'lambda')
+ggplot(data = clutch_island %>% drop_na(), aes(y = clumin, x = area)) +
+  geom_jitter(alpha = 0.3, size = 2.5, col = "#0072B2") + 
+  geom_smooth(method = 'lm', mapping = aes(y = predict(m, clutch_island)), col = 'black') + 
+  theme_minimal() +
+  theme(legend.position = 'none') + 
+  scale_x_continuous(breaks = c(1, 6, 12), limits = c(1, 14)) + ylim(0,10)
+
+m <- phylolm(clumax ~ area, data = clutch_island, phy = trees[[1]], model = 'lambda')
+ggplot(data = clutch_island %>% drop_na(), aes(y = clumax, x = area)) +
+  geom_jitter(alpha = 0.3, size = 2.5, col = "#0072B2") + 
+  geom_smooth(method = 'lm', mapping = aes(y = predict(m, clutch_island)), col = 'black') + 
+  theme_minimal() +
+  theme(legend.position = 'none') + 
+  scale_x_continuous(breaks = c(1, 6, 12), limits = c(1, 14)) + ylim(0,10)
+
+m <- phylolm(clumid ~ area, data = clutch_island, phy = trees[[1]], model = 'lambda')
+ggplot(data = clutch_island %>% drop_na(), aes(y = clumid, x = area)) +
+  geom_jitter(alpha = 0.3, size = 2.5, col = "#0072B2") + 
+  geom_smooth(method = 'lm', mapping = aes(y = predict(m, clutch_island)), col = 'black') + 
+  theme_minimal() +
+  theme(legend.position = 'none') + 
+  scale_x_continuous(breaks = c(1, 6, 12), limits = c(1, 14)) + ylim(0,10)
