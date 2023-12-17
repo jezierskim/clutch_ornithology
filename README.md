@@ -11,7 +11,7 @@ clutch_dataset.csv (raw data for the above R script) \
 dev_and_land_sp.csv (family level data on precociality and sea/landbird distinction)
 #### analysis/ (contains files for data analysis and recreate the results published)
 clutch_analysis_code.R (R script for data analysis) \
-clutch_geo_lifhis_dataset.csv (final output of clutch_data_code.R) 
+analysis_dataset.csv (final output of clutch_data_code.R) 
 
 ## In addition to files provided the repository 'data/' needs two extra files that cannot be provided due to copyrights. These are:
 
