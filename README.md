@@ -8,10 +8,11 @@ jezierski.m.t@gmail.com
 #### data/ (contains files for data preparation):
 clutch_data_code.R (R script for data preparation) \
 clutch_dataset.csv (raw data for the above R script) \
-dev_and_land_sp.csv (family level data on precociality and sea/landbird distinction)
+dev_sp.csv (family level data on precociality)
 #### analysis/ (contains files for data analysis and recreate the results published)
 clutch_analysis_code.R (R script for data analysis) \
-analysis_dataset.csv (final output of clutch_data_code.R) 
+analysis_dataset.csv (final output of clutch_data_code.R) \
+seabirds.csv (list of species identified as seabirds (see Methods)) 
 
 ## In addition to files provided the repository 'data/' needs two extra files that cannot be provided due to copyrights. These are:
 
