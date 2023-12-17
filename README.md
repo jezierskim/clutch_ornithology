@@ -17,3 +17,6 @@ analysis_dataset.csv (final output of clutch_data_code.R)
 
 BirdLife International data ranges; freely available at https://datazone.birdlife.org/species/requestdis upon request. NB: the code in 'data/' uses version 2020.1. \
 Natural Earth data land file at 50 million resolution; freely available at https://www.naturalearthdata.com/downloads/50m-physical-vectors/
+
+## In addition to files provided the repository 'analysis/' needs an extra file that cannot be provided due to copyrights. These are:
+100 phylogenetic trees based on genetic data with Hackett backbone. These can be obtained in birdtree.org
