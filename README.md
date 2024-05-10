@@ -1,5 +1,6 @@
-This file provides metadata for the manuscript 'Birds that nest exclusively on islands have smaller clutches'. \
+This file provides metadata for the manuscript 'Birds that breed exclusively on islands have smaller clutches'. \
 Published in Ornithology in 2024 by M. T. Jezierski. \
+https://doi.org/10.1093/ornithology/ukae005 \
 Versioned 10th May 2024. \
 jezierski.m.t@gmail.com
 
